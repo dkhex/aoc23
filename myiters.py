@@ -105,6 +105,16 @@ class ChainIterable:
     def zip(self, *iterables):
         return lambda x: zip(x, *iterables)
 
+    @chain_unit
+    def enumerate(self, start=0):
+        return lambda x: enumerate(x, start=start)
+
+    def sort(self, key=None):
+        return ChainIterable(sorted(self, key=key))
+
+    def sorted(self, key=None):
+        return sorted(self, key=key)
+
     def collect(self):
         return list(self)
 
