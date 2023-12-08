@@ -118,6 +118,9 @@ class ChainIterable:
     def collect(self):
         return list(self)
 
+    def to_dict(self):
+        return dict(self)
+
     def sum(self):
         return sum(self)
 

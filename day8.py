@@ -1,6 +1,8 @@
 from itertools import cycle
 from math import lcm
 
+from myiters import ChainIterable
+
 
 directions = {
     "L": 0,
@@ -8,46 +10,45 @@ directions = {
 }
 
 
-def task1(filename):
-    start = "AAA"
-    end = "ZZZ"
-    nodes = {}
-    with open(filename) as file:
-        way = next(file).strip()
-        for line in file:
-            line = line.strip()
-            if not line:
-                continue
-            name, pair = line.split(" = ")
-            left, right = pair.strip("()").split(", ")
-            nodes[name] = (left, right)
+def get_way(way_line):
+    return map(directions.__getitem__, way_line.strip())
 
-    for step, direction in enumerate(cycle(way), start=1):
-        start = nodes[start][directions[direction]]
-        if start == end:
+
+def get_nodes(lines):
+    return (
+        ChainIterable(lines)
+            .map(str.strip)
+            .filter(bool)
+            .map(lambda line: line.split(" = "))
+            .tuple_map(lambda name, pair: (name, pair.strip("()").split(", ")))
+            .to_dict()
+    )
+
+
+def task1(filename):
+    with open(filename) as file:
+        way = get_way(next(file))
+        nodes = get_nodes(file)
+
+    point = "AAA"
+    end = "ZZZ"
+    for step, direction in enumerate(cycle(way)):
+        if point == end:
             return step
+        point = nodes[point][direction]
 
 
 def task2(filename):
-    points = []
-    nodes = {}
     with open(filename) as file:
-        way = next(file).strip()
-        for line in file:
-            line = line.strip()
-            if not line:
-                continue
-            name, pair = line.split(" = ")
-            left, right = pair.strip("()").split(", ")
-            nodes[name] = (left, right)
-            if name.endswith("A"):
-                points.append(name)
+        way = get_way(next(file))
+        nodes = get_nodes(file)
 
+    points = [node for node in nodes if node.endswith("A")]
     steps = []
     for step, direction in enumerate(cycle(way)):
         if any(point.endswith("Z") for point in points):
             steps.append(step)
-        points = [nodes[point][directions[direction]] for point in points if not point.endswith("Z")]
+        points = [nodes[point][direction] for point in points if not point.endswith("Z")]
         if not points:
             break
 
