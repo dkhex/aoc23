@@ -25,6 +25,15 @@ def predict_number(history):
     )
 
 
+def predict_first_number(history):
+    diffs = collect_diffs(history)
+    return (
+        ChainIterable(diffs[::-1])
+            .map(lambda diff: diff[0])
+            .reduce(lambda a, b: b - a)
+    )
+
+
 def task1(filename):
     with open(filename) as file:
         return (
@@ -38,10 +47,16 @@ def task1(filename):
 
 def task2(filename):
     with open(filename) as file:
-        ...
+        return (
+            ChainIterable(file)
+                .map(str.split)
+                .submap(int)
+                .map(predict_first_number)
+                .sum()
+        )
 
 
 if __name__ == "__main__":
     filename = "inputs/day9.txt"
     print("Task 1:", task1(filename))
-    # print("Task 2:", task2(filename))
+    print("Task 2:", task2(filename))

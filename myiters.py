@@ -1,4 +1,4 @@
-from functools import wraps
+from functools import reduce, wraps
 
 
 def scan(iterable, window=2):
@@ -135,6 +135,12 @@ class ChainIterable:
             return all(self)
         else:
             return all(self.map(pred))
+
+    def reduce(self, func, start=None):
+        if start is not None:
+            return reduce(func, self, start)
+        else:
+            return reduce(func, self)
 
 
 def chain_zip(*iterables):
