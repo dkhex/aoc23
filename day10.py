@@ -1,6 +1,19 @@
 from myiters import ChainIterable
 
 
+circle = [
+    ( 0, -1),
+    (+1, -1),
+    (+1,  0),
+    (+1, +1),
+    ( 0, +1),
+    (-1, +1),
+    (-1,  0),
+    (-1, -1),
+]
+double_circle = circle + circle
+
+
 def around_coords(x, y):
     yield (x    , y - 1)
     yield (x + 1, y    )
@@ -38,6 +51,9 @@ class Pipe:
     @property
     def coords(self):
         return (self.x, self.y)
+
+    def get_coords(self):
+        return self.coords
 
     def get_next_from(self, other_pipe):
         for conn in self.connections:
@@ -78,7 +94,7 @@ class Maze:
             ChainIterable(start_pipe.connections)
                 .tuple_map(self.get_pipe)
                 .filter(lambda pipe: pipe.is_connected(start_pipe))
-                .map(Pipe.coords.fget)
+                .map(Pipe.get_coords)
                 .collect()
         )
 
@@ -107,12 +123,81 @@ def task1(filename):
     return len(loop) // 2
 
 
+def group_tiles(prev, curr, next):
+    rel_prev = prev[0] - curr[0], prev[1] - curr[1]
+    rel_next = next[0] - curr[0], next[1] - curr[1]
+    prev_index = circle.index(rel_prev)
+    next_index = circle.index(rel_next)
+    next_inc = (next_index < prev_index) * 8
+    prev_inc = (not next_inc) * 8
+    left_offsets = double_circle[prev_index + 1 : next_index + next_inc]
+    right_offsets = double_circle[next_index + 1 : prev_index + prev_inc]
+    left = set((curr[0] + x, curr[1] + y) for x, y in left_offsets)
+    right = set((curr[0] + x, curr[1] + y) for x, y in right_offsets)
+    return left, right
+
+
+### DEBUG
+# def visualize_sets(loop, left, right):
+#     temp = [[" " for _ in range(142)] for _ in range(142)]
+#     for x, y in loop:
+#         temp[y][x] = "+"
+#     for x, y in left:
+#         temp[y][x] = "L"
+#     for x, y in right:
+#         temp[y][x] = "R"
+#     with open("out.txt", "w") as file:
+#         for line in temp:
+#             file.write("".join(line) + "\n")
+
+
 def task2(filename):
     with open(filename) as file:
-        ...
+        maze = Maze(file)
+
+    start_pipe = maze.get_start_pipe("S")
+    loop = maze.get_loop(start_pipe)
+    loop_set = set(pipe.coords for pipe in loop)
+
+    by_groups = (
+        ChainIterable(loop + loop[:2])
+            .map(Pipe.get_coords)
+            .scan(3)
+            .tuple_map(group_tiles)
+    )
+    left_set = set()
+    right_set = set()
+
+    for left, right in by_groups:
+        left_set |= left - loop_set
+        right_set |= right - loop_set
+
+    row = start_pipe.coords[1]
+    for col in range(start_pipe.coords[1]):
+        if (col, row) in left_set:
+            new_set = right_set
+            break
+        if (col, row) in right_set:
+            new_set = left_set
+            break
+
+    ### DEBUG
+    # visualize_sets(loop_set, left_set, right_set)
+
+    inner_set = set()
+    while new_set:
+        inner_set |= new_set
+        collected = set()
+        for x, y in new_set:
+            for coord in around_coords(x, y):
+                if coord not in inner_set and coord not in loop_set:
+                    collected.add(coord)
+        new_set = collected
+
+    return len(inner_set)
 
 
 if __name__ == "__main__":
     filename = "inputs/day10.txt"
     print("Task 1:", task1(filename))
-    # print("Task 2:", task2(filename))
+    print("Task 2:", task2(filename))
