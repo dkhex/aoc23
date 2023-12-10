@@ -48,47 +48,63 @@ class Pipe:
         return any(conn == other_pipe for conn in self.connections)
 
 
-def make_maze(lines):
-    maze = (
-        ChainIterable(lines)
-            .map(lambda line: "." + line.strip() + ".")
-            .collect()
-    )
-    filler = "." * len(maze[0])
-    maze = [filler, *maze, filler]
-    return maze
+class Maze:
+    def __init__(self, lines):
+        maze = (
+            ChainIterable(lines)
+                .map(lambda line: "." + line.strip() + ".")
+                .collect()
+        )
+        filler = "." * len(maze[0])
+        self.maze = [filler, *maze, filler]
 
+    def __iter__(self):
+        return iter(self.maze)
 
-def get_symbol_position(maze, symbol):
-    for start_y, row in enumerate(maze):
-        start_x = row.find(symbol)
-        if start_x >= 0:
-            return start_x, start_y
-    else:
-        raise ValueError(f"Symbol '{symbol}' not found")
+    def get_pipe(self, x, y):
+        return Pipe(x, y, self.maze[y][x])
 
+    def get_start_pipe(self, start_symbol):
+        for start_y, row in enumerate(self):
+            start_x = row.find(start_symbol)
+            if start_x >= 0:
+                break
+        else:
+            raise ValueError(f"Symbol '{start_symbol}' not found")
 
-def get_connected_pipe(maze, target_pipe):
-    for x, y in around_coords(*target_pipe):
-        pipe = Pipe(x, y, maze[y][x])
-        if pipe.is_connected(target_pipe) and pipe.coords in target_pipe:
-            return pipe
+        start_pipe = self.get_pipe(start_x, start_y)
+
+        start_pipe.connections = (
+            ChainIterable(start_pipe.connections)
+                .tuple_map(self.get_pipe)
+                .filter(lambda pipe: pipe.is_connected(start_pipe))
+                .map(Pipe.coords.fget)
+                .collect()
+        )
+
+        return start_pipe
+
+    def get_loop(self, start_pipe):
+        loop = [start_pipe]
+        pipe = start_pipe
+        next_pipe = self.get_pipe(*start_pipe.connections[0])
+
+        while next_pipe != start_pipe:
+            loop.append(next_pipe)
+            x, y = next_pipe.get_next_from(pipe)
+            pipe = next_pipe
+            next_pipe = self.get_pipe(x, y)
+
+        return loop
 
 
 def task1(filename):
     with open(filename) as file:
-        maze = make_maze(file)
-        start_x, start_y = get_symbol_position(maze, "S")
-        start_pipe = Pipe(start_x, start_y, "S")
-        pipes = [start_pipe]
-        pipe = start_pipe
-        next_pipe = get_connected_pipe(maze, start_pipe)
-        while next_pipe != start_pipe:
-            pipes.append(next_pipe)
-            x, y = next_pipe.get_next_from(pipe)
-            pipe = next_pipe
-            next_pipe = Pipe(x, y, maze[y][x])
-        return len(pipes) // 2
+        maze = Maze(file)
+
+    start_pipe = maze.get_start_pipe("S")
+    loop = maze.get_loop(start_pipe)
+    return len(loop) // 2
 
 
 def task2(filename):
