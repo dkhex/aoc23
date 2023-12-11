@@ -19,21 +19,9 @@ class Coords:
     
     def get_y(self):
         return self.y
-    
-    def offset_x(self, offset_x):
-        self.x += offset_x
-    
-    def offset_y(self, offset_y):
-        self.y += offset_y
 
 
-def task1(filename):
-    with open(filename) as file:
-        lines = file.readlines()
-
-    height = len(lines)
-    width = len(lines[0])
-
+def collect_galaxies(lines):
     galaxies = (
         ChainIterable(lines)
             .enumerate()
@@ -47,7 +35,13 @@ def task1(filename):
             .flat()
             .collect()
     )
+    height = len(lines)
+    width = len(lines[0])
+    return galaxies, height, width
 
+
+def expand_universe(galaxies, width, height, factor=1):
+    factor -= 1
     expandable_rows = sorted( set(range(height + 1)) - set(map(Coords.get_y, galaxies)) )
     expandable_cols = sorted( set(range(width + 1)) - set(map(Coords.get_x, galaxies)) )
 
@@ -55,7 +49,7 @@ def task1(filename):
     for galaxy in galaxies:
         while galaxy.y > expandable_rows[inc]:
             inc += 1
-        galaxy.offset_y(inc)
+        galaxy.y += inc * factor
 
     galaxies = sorted(galaxies, key=Coords.get_x)
 
@@ -63,22 +57,37 @@ def task1(filename):
     for galaxy in galaxies:
         while galaxy.x > expandable_cols[inc]:
             inc += 1
-        galaxy.offset_x(inc)
+        galaxy.x += inc * factor
 
+
+def get_distances(galaxies):
     dist = 0
     for start, left in enumerate(galaxies, start=1):
         for right in galaxies[start:]:
             dist += left.distance(right)
-    
+
     return dist
+
+
+def task1(filename):
+    with open(filename) as file:
+        lines = file.readlines()
+
+    galaxies, height, width = collect_galaxies(lines)
+    expand_universe(galaxies, height, width, 2)
+    return get_distances(galaxies)
 
 
 def task2(filename):
     with open(filename) as file:
-        ...
+        lines = file.readlines()
+
+    galaxies, height, width = collect_galaxies(lines)
+    expand_universe(galaxies, height, width, 1000000)
+    return get_distances(galaxies)
 
 
 if __name__ == "__main__":
     filename = "inputs/day11.txt"
     print("Task 1:", task1(filename))
-    # print("Task 2:", task2(filename))
+    print("Task 2:", task2(filename))
