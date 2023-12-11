@@ -25,6 +25,12 @@ def flat_map(func, iterable):
             yield elem
 
 
+def flat(iterable):
+    for it in iterable:
+        for elem in it:
+            yield elem
+
+
 def take(iterable, num):
     for _, elem in zip(range(num), iterable):
         yield elem
@@ -84,6 +90,10 @@ class ChainIterable:
     @chain_unit
     def flat_map(self, func):
         return lambda x: flat_map(func, x)
+
+    @chain_unit
+    def flat(self):
+        return lambda x: flat(x)
 
     @chain_unit
     def filter(self, pred=lambda x: x is not None):
