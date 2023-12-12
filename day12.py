@@ -1,36 +1,67 @@
 from myiters import ChainIterable
 
 
-def match_damaged_counts(record, counts):
-    c = 0
-    res = []
-    for template in record:
-        damaged = []
-        count = -1
-        while (c < len(counts)) and (count + counts[c] + 1) <= len(template):
-            damaged.append(counts[c])
-            count += counts[c] + 1
-            c += 1
-        res.append((template, damaged))
-    return res
+def get_arrangements_count(template, counts):
+    if not counts:
+        return 1
+
+    if not "?" in template:
+        if len(counts) != 1 or counts[0] != len(template):
+            raise ValueError("Something is wrong")
+        return 1
+
+    indexes = (
+        ChainIterable(template)
+            .enumerate()
+            .tuple_filter(lambda i, s: s == "?")
+            .tuple_map(lambda i, s: i)
+            .collect()
+    )
+
+    arrangements = 0
+
+    for mut in range(1 << (len(indexes))):
+        cnts = []
+        value = 0
+
+        for i in range(len(template)):
+            if i in indexes:
+                if mut & 1:
+                    value += 1
+                elif value:
+                    cnts.append(value)
+                    value = 0
+                mut >>= 1
+            else:
+                if template[i] == "#":
+                    value += 1
+                elif value:
+                    cnts.append(value)
+                    value = 0
+
+        if value:
+            cnts.append(value)
+
+        if cnts == counts:
+            arrangements += 1
+
+    return arrangements
 
 
 def task1(filename):
     with open(filename) as file:
-        data = (
+        return (
             ChainIterable(file)
                 .map(str.split)
                 .tuple_map(
                     lambda record, counts: (
-                        record.replace(".", " ").split(),
+                        record,
                         [int(c) for c in counts.split(",")],
                     )
                 )
-                .tuple_map(match_damaged_counts)
-                .flat()
-                .collect()
+                .tuple_map(get_arrangements_count)
+                .sum()
         )
-    return data
 
 
 def task2(filename):
