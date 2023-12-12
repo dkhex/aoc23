@@ -18,6 +18,12 @@ def tuple_map(func, iterable):
         yield func(*tup)
 
 
+def tuple_filter(pred, iterable):
+    for tup in iterable:
+        if pred(*tup):
+            yield tup
+
+
 def flat_map(func, iterable):
     for tup in iterable:
         result = func(*tup)
@@ -98,6 +104,10 @@ class ChainIterable:
     @chain_unit
     def filter(self, pred=lambda x: x is not None):
         return lambda x: filter(pred, x)
+
+    @chain_unit
+    def tuple_filter(self, pred=lambda x: x is not None):
+        return lambda x: tuple_filter(pred, x)
 
     @chain_unit
     def subfilter(self, pred=lambda x: x is not None):
